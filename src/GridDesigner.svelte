@@ -13,6 +13,16 @@
 
   let dragStart = $state(null)
   let dragEnd = $state(null)
+  let zoom = $state(1)
+
+  function wheelZoom(node) {
+    function onWheel(e) {
+      e.preventDefault()
+      zoom = Math.max(0.25, Math.min(4, zoom * (e.deltaY < 0 ? 1.1 : 1 / 1.1)))
+    }
+    node.addEventListener('wheel', onWheel, { passive: false })
+    return { destroy() { node.removeEventListener('wheel', onWheel) } }
+  }
 
   const selection = $derived(
     dragStart && dragEnd
@@ -29,9 +39,10 @@
     const rect = e.currentTarget.getBoundingClientRect()
     const x = e.clientX - rect.left
     const y = e.clientY - rect.top
+    // Use rect dimensions (which reflect the CSS scale transform) for hit-testing
     return {
-      col: Math.max(0, Math.min(cols - 1, Math.floor(x / CELL_SIZE))),
-      row: Math.max(0, Math.min(rows - 1, Math.floor(y / CELL_SIZE))),
+      col: Math.max(0, Math.min(cols - 1, Math.floor(x * cols / rect.width))),
+      row: Math.max(0, Math.min(rows - 1, Math.floor(y * rows / rect.height))),
     }
   }
 
@@ -57,14 +68,17 @@
   }
 </script>
 
+<!-- sized wrapper so the parent overflow:auto sees the zoomed dimensions -->
+<div style="width: {svgWidth * zoom}px; height: {svgHeight * zoom}px; flex-shrink: 0;">
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <svg
   width={svgWidth}
   height={svgHeight}
+  use:wheelZoom
   onpointerdown={handlePointerdown}
   onpointermove={handlePointermove}
   onpointerup={handlePointerup}
-  style="cursor: crosshair; user-select: none; touch-action: none; display: block;"
+  style="transform: scale({zoom}); transform-origin: top left; cursor: crosshair; user-select: none; touch-action: none; display: block;"
 >
   <!-- Cell layer -->
   {#each cells as row, r}
@@ -105,3 +119,4 @@
     />
   {/if}
 </svg>
+</div>

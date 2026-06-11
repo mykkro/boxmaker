@@ -11,6 +11,19 @@
   let mode = $state('hollow')
   let history = $state([])
 
+  let split = $state(0.5)
+  let workspaceEl
+
+  function onDividerPointerdown(e) {
+    e.currentTarget.setPointerCapture(e.pointerId)
+  }
+
+  function onDividerPointermove(e) {
+    if (!e.buttons) return
+    const rect = workspaceEl.getBoundingClientRect()
+    split = Math.max(0.1, Math.min(0.9, (e.clientY - rect.top) / rect.height))
+  }
+
   let cellSize = $state(20)
   let boxHeight = $state(30)
   let wallThickness = $state(1.5)
@@ -105,14 +118,19 @@
     onundo={handleUndo}
     onsetdimensions={handleSetDimensions}
   />
-  <div class="workspace">
-    <div class="grid-pane">
+  <div class="workspace" bind:this={workspaceEl}>
+    <div class="grid-pane" style="flex: {split}">
       <GridDesigner {cells} {mode} {walls} oncommit={handleCommit} />
     </div>
+    <div
+      class="divider"
+      onpointerdown={onDividerPointerdown}
+      onpointermove={onDividerPointermove}
+    ></div>
     <div class="preview-header">
       {cols * cellSize + 2 * outerWallThickness} × {rows * cellSize + 2 * outerWallThickness} × {boxHeight} mm
     </div>
-    <div class="preview-pane">
+    <div class="preview-pane" style="flex: {1 - split}">
       <BoxPreview3D
         {cells}
         {walls}
@@ -141,13 +159,23 @@
     overflow: hidden;
   }
   .grid-pane {
-    flex: 1;
     display: flex;
     align-items: center;
     justify-content: center;
     overflow: auto;
     padding: 24px;
     min-height: 0;
+  }
+  .divider {
+    flex-shrink: 0;
+    height: 5px;
+    background: #3a3a3a;
+    cursor: row-resize;
+    touch-action: none;
+    transition: background 0.15s;
+  }
+  .divider:hover, .divider:active {
+    background: #3a7bd5;
   }
   .preview-header {
     flex-shrink: 0;
@@ -161,8 +189,7 @@
     letter-spacing: 0.05em;
   }
   .preview-pane {
-    height: 320px;
-    flex-shrink: 0;
+    min-height: 0;
     background: #1a1a1a;
     position: relative;
   }
