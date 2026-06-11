@@ -3,6 +3,7 @@ export function makeCells(rows, cols) {
 }
 
 export function applyOperation(cells, { minRow, maxRow, minCol, maxCol }, mode) {
+  if (mode !== 'hollow' && mode !== 'fill') throw new Error(`Unknown mode: ${mode}`)
   const value = mode === 'fill'
   return cells.map((row, r) =>
     row.map((cell, c) =>
