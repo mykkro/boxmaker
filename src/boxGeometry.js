@@ -64,7 +64,7 @@ export function wallRects(cells, walls, params) {
 }
 
 export function buildGeometry(cells, walls, params) {
-  const { cellSize, boxHeight, wallThickness, bottomThickness, outerWallThickness: owt } = params
+  const { cellSize, boxHeight, wallThickness: wt, bottomThickness, outerWallThickness: owt } = params
   const rows = cells.length
   const cols = cells[0]?.length ?? 0
   if (rows === 0 || cols === 0) return new THREE.BufferGeometry()
@@ -73,9 +73,8 @@ export function buildGeometry(cells, walls, params) {
   const totalD = rows * cellSize + 2 * owt
   const innerH = Math.max(0, boxHeight - bottomThickness)
 
-  // Box frame: outer solid minus inner cavity.
-  // Because it's a single subtract(), all 8 outer corners and all 4 inner
-  // corners are part of one continuous solid — no mesh seams anywhere.
+  // Box frame: outer solid minus inner cavity — single subtract gives a
+  // continuous solid, so all outer and inner corners are seam-free.
   const outerBox = cuboid({
     size: [totalW, totalD, boxHeight],
     center: [totalW / 2, totalD / 2, boxHeight / 2],
@@ -85,18 +84,29 @@ export function buildGeometry(cells, walls, params) {
   if (innerH <= 0 || totalW <= 2 * owt || totalD <= 2 * owt) {
     model = outerBox
   } else {
-    const innerCavity = cuboid({
+    model = subtract(outerBox, cuboid({
       size: [totalW - 2 * owt, totalD - 2 * owt, innerH],
       center: [totalW / 2, totalD / 2, bottomThickness + innerH / 2],
-    })
-    model = subtract(outerBox, innerCavity)
+    }))
   }
 
-  // Collect everything that fills the interior: solid cell blocks and
-  // explicit compartment walls.  Union them together with the frame in one
-  // pass so adjacent pieces merge cleanly.
   const fills = []
+  // Track every grid vertex (vC, vR) touched by any wall segment so we can
+  // add a wt×wt pillar there.  This fills the "missing quarter" that appears
+  // at L/T junctions where two wall cuboids share a vertex but one quadrant
+  // of the wt×wt column would otherwise be empty.
+  const pillarVerts = new Set()  // "vC:vR" at grid-line intersections
 
+  // Push a wall segment and record its two endpoint vertices.
+  // Vertices are in grid-vertex coordinates: (vC, vR) maps to physical
+  // position (owt + vC*cellSize, owt + vR*cellSize).
+  const addWall = (size, center, vC1, vR1, vC2, vR2) => {
+    fills.push(cuboid({ size, center }))
+    pillarVerts.add(`${vC1}:${vR1}`)
+    pillarVerts.add(`${vC2}:${vR2}`)
+  }
+
+  // Solid cell blocks (full cell volume; boundary walls handled below)
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
       if (cells[r][c]) {
@@ -112,32 +122,63 @@ export function buildGeometry(cells, walls, params) {
     }
   }
 
+  // Walls at solid↔hollow cell boundaries (issue 1).
+  // The wall is wt thick, centered on the shared edge — wt/2 protrudes into
+  // the hollow side, wt/2 overlaps the solid block (CSG union absorbs it).
+  for (let r = 0; r < rows - 1; r++) {
+    for (let c = 0; c < cols; c++) {
+      if (cells[r][c] !== cells[r + 1][c]) {
+        addWall(
+          [cellSize, wt, innerH],
+          [owt + c * cellSize + cellSize / 2, owt + (r + 1) * cellSize, bottomThickness + innerH / 2],
+          c, r + 1, c + 1, r + 1,
+        )
+      }
+    }
+  }
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols - 1; c++) {
+      if (cells[r][c] !== cells[r][c + 1]) {
+        addWall(
+          [wt, cellSize, innerH],
+          [owt + (c + 1) * cellSize, owt + r * cellSize + cellSize / 2, bottomThickness + innerH / 2],
+          c + 1, r, c + 1, r + 1,
+        )
+      }
+    }
+  }
+
+  // Explicit compartment walls between hollow cells
   for (const key of walls) {
     if (key.startsWith('h:')) {
       const [, r, c] = key.split(':').map(Number)
       if (r > 0 && r < rows && cells[r - 1][c] === false && cells[r][c] === false) {
-        fills.push(cuboid({
-          size: [cellSize, wallThickness, innerH],
-          center: [
-            owt + c * cellSize + cellSize / 2,
-            owt + r * cellSize,
-            bottomThickness + innerH / 2,
-          ],
-        }))
+        addWall(
+          [cellSize, wt, innerH],
+          [owt + c * cellSize + cellSize / 2, owt + r * cellSize, bottomThickness + innerH / 2],
+          c, r, c + 1, r,
+        )
       }
     } else if (key.startsWith('v:')) {
       const [, r, c] = key.split(':').map(Number)
       if (c > 0 && c < cols && cells[r][c - 1] === false && cells[r][c] === false) {
-        fills.push(cuboid({
-          size: [wallThickness, cellSize, innerH],
-          center: [
-            owt + c * cellSize,
-            owt + r * cellSize + cellSize / 2,
-            bottomThickness + innerH / 2,
-          ],
-        }))
+        addWall(
+          [wt, cellSize, innerH],
+          [owt + c * cellSize, owt + r * cellSize + cellSize / 2, bottomThickness + innerH / 2],
+          c, r, c, r + 1,
+        )
       }
     }
+  }
+
+  // Corner pillars (issue 2): a wt×wt column at every wall-segment vertex
+  // fills whichever quadrant of the junction the adjacent wall cuboids miss.
+  for (const v of pillarVerts) {
+    const [vC, vR] = v.split(':').map(Number)
+    fills.push(cuboid({
+      size: [wt, wt, innerH],
+      center: [owt + vC * cellSize, owt + vR * cellSize, bottomThickness + innerH / 2],
+    }))
   }
 
   if (fills.length > 0) {
