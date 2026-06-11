@@ -1,13 +1,34 @@
 import * as THREE from 'three'
-import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
-import polygonClipping from 'polygon-clipping'
+import { primitives, booleans, geometries as jscadGeoms } from '@jscad/modeling'
 
-function toClipRect(x1, y1, x2, y2) {
-  return [[[x1, y1], [x2, y1], [x2, y2], [x1, y2], [x1, y1]]]
+const { cuboid } = primitives
+const { union, subtract } = booleans
+const { geom3, poly3 } = jscadGeoms
+
+// Convert a JSCAD solid (Z-up) to a Three.js BufferGeometry (Y-up).
+// Mapping: JSCAD (x, y, z) → Three.js (x, z, y).
+// Swapping two axes is a reflection, which reverses winding — so we flip the
+// triangle fan order to keep CCW front faces in Three.js.
+function solidToThree(solid) {
+  const polygons = geom3.toPolygons(solid)
+  const pos = [], nor = []
+  for (const poly of polygons) {
+    const pl = poly3.plane(poly)   // [nx, ny, nz, d]
+    const vs = poly.vertices       // [[x,y,z], ...]
+    const nx = pl[0], ny = pl[2], nz = pl[1]   // normal: Z-up → Y-up
+    for (let i = 1; i < vs.length - 1; i++) {
+      const p = v => pos.push(v[0], v[2], v[1]) // position: Z-up → Y-up
+      p(vs[0]); p(vs[i + 1]); p(vs[i])          // reversed fan for winding
+      nor.push(nx, ny, nz, nx, ny, nz, nx, ny, nz)
+    }
+  }
+  const geo = new THREE.BufferGeometry()
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3))
+  geo.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3))
+  return geo
 }
 
-// Returns the list of [x1,y1,x2,y2] rectangles that form the wall footprint.
-// Outer walls + explicit compartment walls between hollow cells.
+// Pure data helper — used by unit tests to verify the wall rectangle footprint.
 export function wallRects(cells, walls, params) {
   const { cellSize, wallThickness, outerWallThickness: owt } = params
   const rows = cells.length
@@ -16,10 +37,10 @@ export function wallRects(cells, walls, params) {
   const totalD = rows * cellSize + 2 * owt
 
   const rects = [
-    [0,           0,           owt,        totalD],
-    [totalW - owt, 0,          totalW,     totalD],
-    [0,           0,           totalW,     owt],
-    [0,           totalD - owt, totalW,    totalD],
+    [0,            0,           owt,        totalD],
+    [totalW - owt, 0,           totalW,     totalD],
+    [0,            0,           totalW,     owt],
+    [0,            totalD - owt, totalW,    totalD],
   ]
 
   for (const key of walls) {
@@ -39,67 +60,89 @@ export function wallRects(cells, walls, params) {
       }
     }
   }
-
   return rects
-}
-
-function buildWallShapes(cells, walls, params) {
-  const rects = wallRects(cells, walls, params)
-  const union = polygonClipping.union(...rects.map(([x1, y1, x2, y2]) => toClipRect(x1, y1, x2, y2)))
-
-  return union.map(poly => {
-    const shape = new THREE.Shape()
-    const outer = poly[0]
-    shape.moveTo(outer[0][0], -outer[0][1])
-    for (let i = 1; i < outer.length - 1; i++) shape.lineTo(outer[i][0], -outer[i][1])
-    for (let h = 1; h < poly.length; h++) {
-      const hole = new THREE.Path()
-      const ring = poly[h]
-      hole.moveTo(ring[0][0], -ring[0][1])
-      for (let i = 1; i < ring.length - 1; i++) hole.lineTo(ring[i][0], -ring[i][1])
-      shape.holes.push(hole)
-    }
-    return shape
-  })
 }
 
 export function buildGeometry(cells, walls, params) {
   const { cellSize, boxHeight, wallThickness, bottomThickness, outerWallThickness: owt } = params
   const rows = cells.length
   const cols = cells[0]?.length ?? 0
+  if (rows === 0 || cols === 0) return new THREE.BufferGeometry()
+
   const totalW = cols * cellSize + 2 * owt
   const totalD = rows * cellSize + 2 * owt
-  const innerH = boxHeight - bottomThickness
+  const innerH = Math.max(0, boxHeight - bottomThickness)
 
-  const geometries = []
+  // Box frame: outer solid minus inner cavity.
+  // Because it's a single subtract(), all 8 outer corners and all 4 inner
+  // corners are part of one continuous solid — no mesh seams anywhere.
+  const outerBox = cuboid({
+    size: [totalW, totalD, boxHeight],
+    center: [totalW / 2, totalD / 2, boxHeight / 2],
+  })
 
-  // Bottom plate
-  const bottom = new THREE.BoxGeometry(totalW, bottomThickness, totalD)
-  bottom.translate(totalW / 2, bottomThickness / 2, totalD / 2)
-  geometries.push(bottom)
+  let model
+  if (innerH <= 0 || totalW <= 2 * owt || totalD <= 2 * owt) {
+    model = outerBox
+  } else {
+    const innerCavity = cuboid({
+      size: [totalW - 2 * owt, totalD - 2 * owt, innerH],
+      center: [totalW / 2, totalD / 2, bottomThickness + innerH / 2],
+    })
+    model = subtract(outerBox, innerCavity)
+  }
 
-  // Solid cell blocks
+  // Collect everything that fills the interior: solid cell blocks and
+  // explicit compartment walls.  Union them together with the frame in one
+  // pass so adjacent pieces merge cleanly.
+  const fills = []
+
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
       if (cells[r][c]) {
-        const g = new THREE.BoxGeometry(cellSize, innerH, cellSize)
-        g.translate(owt + c * cellSize + cellSize / 2, bottomThickness + innerH / 2, owt + r * cellSize + cellSize / 2)
-        geometries.push(g)
+        fills.push(cuboid({
+          size: [cellSize, cellSize, innerH],
+          center: [
+            owt + c * cellSize + cellSize / 2,
+            owt + r * cellSize + cellSize / 2,
+            bottomThickness + innerH / 2,
+          ],
+        }))
       }
     }
   }
 
-  // Wall extrusion: dilate edges → union footprint → extrude
-  // Shape defined in (design_x, -design_y) so that rotateX(-π/2) maps:
-  //   shape-X → Three.js X, shape-Y(-design_y) → Three.js Z(design_y), extrusion-Z → Three.js Y
-  for (const shape of buildWallShapes(cells, walls, params)) {
-    const g = new THREE.ExtrudeGeometry(shape, { depth: innerH, bevelEnabled: false })
-    g.rotateX(-Math.PI / 2)
-    g.translate(0, bottomThickness, 0)
-    geometries.push(g)
+  for (const key of walls) {
+    if (key.startsWith('h:')) {
+      const [, r, c] = key.split(':').map(Number)
+      if (r > 0 && r < rows && cells[r - 1][c] === false && cells[r][c] === false) {
+        fills.push(cuboid({
+          size: [cellSize, wallThickness, innerH],
+          center: [
+            owt + c * cellSize + cellSize / 2,
+            owt + r * cellSize,
+            bottomThickness + innerH / 2,
+          ],
+        }))
+      }
+    } else if (key.startsWith('v:')) {
+      const [, r, c] = key.split(':').map(Number)
+      if (c > 0 && c < cols && cells[r][c - 1] === false && cells[r][c] === false) {
+        fills.push(cuboid({
+          size: [wallThickness, cellSize, innerH],
+          center: [
+            owt + c * cellSize,
+            owt + r * cellSize + cellSize / 2,
+            bottomThickness + innerH / 2,
+          ],
+        }))
+      }
+    }
   }
 
-  const merged = mergeGeometries(geometries)
-  geometries.forEach(g => g.dispose())
-  return merged
+  if (fills.length > 0) {
+    model = union(model, ...fills)
+  }
+
+  return solidToThree(model)
 }
