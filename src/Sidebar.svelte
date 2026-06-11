@@ -1,4 +1,6 @@
 <script>
+  import version from '../VERSION?raw'
+
   let {
     cols, rows, mode, canUndo,
     cellSize, boxHeight, wallThickness, bottomThickness, outerWallThickness, cornerRadius,
@@ -8,6 +10,7 @@
 
 <aside>
   <h1>BoxMaker</h1>
+  <div class="version">v{version.trim()}</div>
 
   <section>
     <span class="label">GRID SIZE</span>
@@ -113,7 +116,13 @@
     font-size: 13px;
     font-weight: bold;
     color: #aaa;
-    margin: 0 0 16px 0;
+    margin: 0 0 2px 0;
+    letter-spacing: 0.05em;
+  }
+  .version {
+    font-size: 10px;
+    color: #555;
+    margin: 0 0 14px 0;
     letter-spacing: 0.05em;
   }
   section {
