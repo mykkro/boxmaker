@@ -3,13 +3,13 @@
 
   const CELL_SIZE = 40
 
-  let { cells, mode, oncommit } = $props()
+  let { cells, mode, walls, oncommit } = $props()
 
   const rows = $derived(cells.length)
   const cols = $derived(cells[0]?.length ?? 0)
   const svgWidth = $derived(cols * CELL_SIZE)
   const svgHeight = $derived(rows * CELL_SIZE)
-  const walls = $derived(computeWalls(cells, CELL_SIZE))
+  const wallEdges = $derived(computeWalls(cells, CELL_SIZE, walls))
 
   let dragStart = $state(null)
   let dragEnd = $state(null)
@@ -84,7 +84,7 @@
   {/each}
 
   <!-- Wall layer -->
-  {#each walls as { x1, y1, x2, y2, type }}
+  {#each wallEdges as { x1, y1, x2, y2, type }}
     <line
       {x1} {y1} {x2} {y2}
       stroke={type === 'wall' ? '#333' : '#ccc'}
