@@ -31,6 +31,9 @@
     <button class:active={mode === 'fill'} onclick={() => onsetmode('fill')}>
       ▦ Fill
     </button>
+    <button class:active={mode === 'compartment'} onclick={() => onsetmode('compartment')}>
+      ⊞ Compart.
+    </button>
   </section>
 
   <section>
