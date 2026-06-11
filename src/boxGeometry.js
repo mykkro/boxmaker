@@ -33,5 +33,26 @@ export function buildBoxParts(cells, walls, params) {
     }
   }
 
+  // Explicit inner walls (from compartment mode)
+  for (const key of walls) {
+    if (key.startsWith('h:')) {
+      const [, r, c] = key.split(':').map(Number)
+      if (r > 0 && r < rows && cells[r - 1][c] === false && cells[r][c] === false) {
+        parts.push({
+          center: [owt + c * cellSize + cellSize / 2, owt + r * cellSize, bottomThickness + innerH / 2],
+          size: [cellSize, wallThickness, innerH]
+        })
+      }
+    } else if (key.startsWith('v:')) {
+      const [, r, c] = key.split(':').map(Number)
+      if (c > 0 && c < cols && cells[r][c - 1] === false && cells[r][c] === false) {
+        parts.push({
+          center: [owt + c * cellSize, owt + r * cellSize + cellSize / 2, bottomThickness + innerH / 2],
+          size: [wallThickness, cellSize, innerH]
+        })
+      }
+    }
+  }
+
   return parts
 }

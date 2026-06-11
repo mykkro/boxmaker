@@ -42,3 +42,39 @@ describe('buildBoxParts — solid cell blocks', () => {
     expect(parts[5]).toEqual({ center: [9, 9, 11.5], size: [10, 10, 17] })
   })
 })
+
+describe('buildBoxParts — explicit inner walls', () => {
+  it('adds a vertical wall between two hollow cells', () => {
+    // v:0:1 — column boundary at c=1, between cells[0][0] and cells[0][1]
+    // center x = owt + c*cellSize = 4 + 10 = 14
+    // center y = owt + r*cellSize + cellSize/2 = 4 + 0 + 5 = 9
+    // center z = bottomThickness + innerH/2 = 3 + 8.5 = 11.5
+    const parts = buildBoxParts([[false, false]], new Set(['v:0:1']), P)
+    expect(parts).toHaveLength(6) // bottom + 4 outer + 1 inner wall
+    expect(parts[5]).toEqual({ center: [14, 9, 11.5], size: [2, 10, 17] })
+  })
+
+  it('adds a horizontal wall between two hollow cells', () => {
+    // h:1:0 — row boundary at r=1, between cells[0][0] and cells[1][0]
+    // center x = owt + c*cellSize + cellSize/2 = 4 + 0 + 5 = 9
+    // center y = owt + r*cellSize = 4 + 10 = 14
+    // center z = 3 + 8.5 = 11.5
+    const parts = buildBoxParts([[false], [false]], new Set(['h:1:0']), P)
+    expect(parts).toHaveLength(6)
+    expect(parts[5]).toEqual({ center: [9, 14, 11.5], size: [10, 2, 17] })
+  })
+
+  it('skips outer boundary wall keys', () => {
+    // All 4 boundary keys for a 1×1 grid: r=0, r=rows=1, c=0, c=cols=1
+    const walls = new Set(['h:0:0', 'h:1:0', 'v:0:0', 'v:0:1'])
+    const parts = buildBoxParts([[false]], walls, P)
+    expect(parts).toHaveLength(5) // no inner walls added
+  })
+
+  it('skips a vertical wall when one adjacent cell is solid', () => {
+    // cells[0][0]=true (solid), cells[0][1]=false; wall v:0:1 present
+    // solid cell provides the wall — no extra geometry needed
+    const parts = buildBoxParts([[true, false]], new Set(['v:0:1']), P)
+    expect(parts).toHaveLength(6) // bottom + 4 outer + 1 solid block (no inner wall)
+  })
+})
