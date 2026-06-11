@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { makeCells, applyOperation, computeWalls } from './grid.js'
+import { makeCells, applyOperation, computeWalls, compartmentEdges } from './grid.js'
 
 describe('makeCells', () => {
   it('creates rows x cols 2D array filled with true', () => {
@@ -83,5 +83,51 @@ describe('computeWalls', () => {
     // Bottom edge of bottom row at y=20
     const bottomEdge = edges.filter(e => e.y1 === 20 && e.y2 === 20)
     expect(bottomEdge).toHaveLength(2)
+  })
+})
+
+describe('compartmentEdges', () => {
+  it('returns 4 keys for a 1x1 selection at origin', () => {
+    const keys = compartmentEdges({ minRow: 0, maxRow: 0, minCol: 0, maxCol: 0 })
+    expect(keys.has('h:0:0')).toBe(true)  // top
+    expect(keys.has('h:1:0')).toBe(true)  // bottom
+    expect(keys.has('v:0:0')).toBe(true)  // left
+    expect(keys.has('v:0:1')).toBe(true)  // right
+    expect(keys.size).toBe(4)
+  })
+
+  it('returns 8 keys for a 2x2 selection at offset position', () => {
+    const keys = compartmentEdges({ minRow: 1, maxRow: 2, minCol: 1, maxCol: 2 })
+    expect(keys.has('h:1:1')).toBe(true)  // top-left
+    expect(keys.has('h:1:2')).toBe(true)  // top-right
+    expect(keys.has('h:3:1')).toBe(true)  // bottom-left
+    expect(keys.has('h:3:2')).toBe(true)  // bottom-right
+    expect(keys.has('v:1:1')).toBe(true)  // left-top
+    expect(keys.has('v:2:1')).toBe(true)  // left-bottom
+    expect(keys.has('v:1:3')).toBe(true)  // right-top
+    expect(keys.has('v:2:3')).toBe(true)  // right-bottom
+    expect(keys.size).toBe(8)
+  })
+
+  it('returns a Set (not an array)', () => {
+    const keys = compartmentEdges({ minRow: 0, maxRow: 0, minCol: 0, maxCol: 0 })
+    expect(keys).toBeInstanceOf(Set)
+  })
+})
+
+describe('computeWalls with explicitWalls', () => {
+  it('defaults to no explicit walls when third arg omitted (existing behavior unchanged)', () => {
+    const cells = [[false, false]]
+    const edges = computeWalls(cells, 40)
+    const interior = edges.find(e => e.x1 === 40 && e.x2 === 40 && e.y1 === 0 && e.y2 === 40)
+    expect(interior?.type).toBe('ghost')
+  })
+
+  it('marks an explicit wall edge as wall even between two hollow cells', () => {
+    const cells = [[false, false]]
+    const explicitWalls = new Set(['v:0:1'])
+    const edges = computeWalls(cells, 40, explicitWalls)
+    const interior = edges.find(e => e.x1 === 40 && e.x2 === 40 && e.y1 === 0 && e.y2 === 40)
+    expect(interior?.type).toBe('wall')
   })
 })
