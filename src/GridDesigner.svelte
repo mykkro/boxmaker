@@ -36,7 +36,8 @@
   }
 
   function handlePointerdown(e) {
-    if (e.button !== 0) return
+    if (e.pointerType === 'mouse' && e.button !== 0) return
+    e.preventDefault()
     e.currentTarget.setPointerCapture(e.pointerId)
     const cell = pointerToCell(e)
     dragStart = cell
@@ -63,7 +64,7 @@
   onpointerdown={handlePointerdown}
   onpointermove={handlePointermove}
   onpointerup={handlePointerup}
-  style="cursor: crosshair; user-select: none; display: block;"
+  style="cursor: crosshair; user-select: none; touch-action: none; display: block;"
 >
   <!-- Cell layer -->
   {#each cells as row, r}

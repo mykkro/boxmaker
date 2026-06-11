@@ -43,7 +43,17 @@
     const cellMode = mode === 'fill' ? 'fill' : 'hollow'
     cells = applyOperation(cells, selection, cellMode)
 
-    if (mode === 'compartment') {
+    if (mode === 'hollow') {
+      const { minRow, maxRow, minCol, maxCol } = selection
+      const next = new Set(walls)
+      for (let r = minRow + 1; r <= maxRow; r++)
+        for (let c = minCol; c <= maxCol; c++)
+          next.delete(`h:${r}:${c}`)
+      for (let r = minRow; r <= maxRow; r++)
+        for (let c = minCol + 1; c <= maxCol; c++)
+          next.delete(`v:${r}:${c}`)
+      walls = next
+    } else if (mode === 'compartment') {
       const { minRow, maxRow, minCol, maxCol } = selection
       const next = new Set(walls)
       for (let r = minRow + 1; r <= maxRow; r++)
