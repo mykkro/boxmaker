@@ -1,3 +1,6 @@
+import * as THREE from 'three'
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
+
 export function buildBoxParts(cells, walls, params) {
   const { cellSize, boxHeight, wallThickness, bottomThickness, outerWallThickness: owt } = params
   const rows = cells.length
@@ -55,4 +58,17 @@ export function buildBoxParts(cells, walls, params) {
   }
 
   return parts
+}
+
+export function buildGeometry(cells, walls, params) {
+  const parts = buildBoxParts(cells, walls, params)
+  // Three.js is Y-up: map logical (X, Y=rows, Z=height) → three (X, Y=height, Z=rows)
+  const geometries = parts.map(({ center, size }) => {
+    const geo = new THREE.BoxGeometry(size[0], size[2], size[1])
+    geo.translate(center[0], center[2], center[1])
+    return geo
+  })
+  const merged = mergeGeometries(geometries)
+  geometries.forEach(g => g.dispose())
+  return merged
 }
