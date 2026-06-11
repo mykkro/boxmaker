@@ -3,7 +3,7 @@
 
   const CELL_SIZE = 40
 
-  let { cells, mode, walls, oncommit } = $props()
+  let { cells, mode, walls, zoom, oncommit, onzoom } = $props()
 
   const rows = $derived(cells.length)
   const cols = $derived(cells[0]?.length ?? 0)
@@ -13,12 +13,11 @@
 
   let dragStart = $state(null)
   let dragEnd = $state(null)
-  let zoom = $state(1)
 
   function wheelZoom(node) {
     function onWheel(e) {
       e.preventDefault()
-      zoom = Math.max(0.25, Math.min(4, zoom * (e.deltaY < 0 ? 1.1 : 1 / 1.1)))
+      onzoom(Math.max(0.25, Math.min(4, zoom * (e.deltaY < 0 ? 1.1 : 1 / 1.1))))
     }
     node.addEventListener('wheel', onWheel, { passive: false })
     return { destroy() { node.removeEventListener('wheel', onWheel) } }
