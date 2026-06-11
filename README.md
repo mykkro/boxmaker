@@ -2,6 +2,8 @@
 
 A browser-based tool for designing custom organiser boxes — hollow-cell grids with compartments, configurable dimensions, and a live 3D preview. Outputs ready-to-print STL files.
 
+**[Live demo →](http://download.mykkro.cz/boxmaker)**
+
 ![BoxMaker screenshot](media/boxmaker.jpg)
 
 ## What it does
