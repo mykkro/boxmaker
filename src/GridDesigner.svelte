@@ -10,11 +10,64 @@
   const svgWidth = $derived(cols * CELL_SIZE)
   const svgHeight = $derived(rows * CELL_SIZE)
   const walls = $derived(computeWalls(cells, CELL_SIZE))
+
+  let dragStart = $state(null)
+  let dragEnd = $state(null)
+
+  const selection = $derived(
+    dragStart && dragEnd
+      ? {
+          minCol: Math.min(dragStart.col, dragEnd.col),
+          maxCol: Math.max(dragStart.col, dragEnd.col),
+          minRow: Math.min(dragStart.row, dragEnd.row),
+          maxRow: Math.max(dragStart.row, dragEnd.row),
+        }
+      : null
+  )
+
+  function pointerToCell(e) {
+    const rect = e.currentTarget.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const y = e.clientY - rect.top
+    return {
+      col: Math.max(0, Math.min(cols - 1, Math.floor(x / CELL_SIZE))),
+      row: Math.max(0, Math.min(rows - 1, Math.floor(y / CELL_SIZE))),
+    }
+  }
+
+  function handleMousedown(e) {
+    if (e.button !== 0) return
+    const cell = pointerToCell(e)
+    dragStart = cell
+    dragEnd = cell
+  }
+
+  function handleMousemove(e) {
+    if (!dragStart) return
+    dragEnd = pointerToCell(e)
+  }
+
+  function handleMouseup(e) {
+    if (!dragStart || !selection) return
+    oncommit(selection)
+    dragStart = null
+    dragEnd = null
+  }
+
+  function handleMouseleave() {
+    dragStart = null
+    dragEnd = null
+  }
 </script>
 
+<!-- svelte-ignore a11y_no_static_element_interactions -->
 <svg
   width={svgWidth}
   height={svgHeight}
+  onmousedown={handleMousedown}
+  onmousemove={handleMousemove}
+  onmouseup={handleMouseup}
+  onmouseleave={handleMouseleave}
   style="cursor: crosshair; user-select: none; display: block;"
 >
   <!-- Cell layer -->
@@ -37,6 +90,22 @@
       stroke={type === 'wall' ? '#333' : '#ccc'}
       stroke-width={type === 'wall' ? 3 : 0.5}
       stroke-linecap="square"
+      pointer-events="none"
     />
   {/each}
+
+  <!-- Drag preview layer -->
+  {#if selection}
+    <rect
+      x={selection.minCol * CELL_SIZE}
+      y={selection.minRow * CELL_SIZE}
+      width={(selection.maxCol - selection.minCol + 1) * CELL_SIZE}
+      height={(selection.maxRow - selection.minRow + 1) * CELL_SIZE}
+      fill="rgba(58, 123, 213, 0.25)"
+      stroke="#3a7bd5"
+      stroke-width="2"
+      stroke-dasharray="5 3"
+      pointer-events="none"
+    />
+  {/if}
 </svg>
