@@ -16,6 +16,7 @@
   let wallThickness = $state(1.5)
   let bottomThickness = $state(2)
   let outerWallThickness = $state(3)
+  let cornerRadius = $state(5)
 
   function handleSetSize(newCols, newRows) {
     if (newCols < 1 || newRows < 1) return
@@ -83,6 +84,7 @@
     if ('wallThickness' in update) wallThickness = update.wallThickness
     if ('bottomThickness' in update) bottomThickness = update.bottomThickness
     if ('outerWallThickness' in update) outerWallThickness = update.outerWallThickness
+    if ('cornerRadius' in update) cornerRadius = update.cornerRadius
   }
 </script>
 
@@ -97,6 +99,7 @@
     {wallThickness}
     {bottomThickness}
     {outerWallThickness}
+    {cornerRadius}
     onsetsize={handleSetSize}
     onsetmode={handleSetMode}
     onundo={handleUndo}
@@ -118,6 +121,7 @@
         {wallThickness}
         {bottomThickness}
         {outerWallThickness}
+        {cornerRadius}
       />
     </div>
   </div>

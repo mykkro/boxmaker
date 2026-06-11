@@ -1,8 +1,10 @@
 import * as THREE from 'three'
-import { primitives, booleans, geometries as jscadGeoms } from '@jscad/modeling'
+import { primitives, booleans, extrusions, transforms, geometries as jscadGeoms } from '@jscad/modeling'
 
-const { cuboid } = primitives
+const { cuboid, roundedRectangle } = primitives
 const { union, subtract } = booleans
+const { extrudeLinear } = extrusions
+const { translate } = transforms
 const { geom3, poly3 } = jscadGeoms
 
 // Convert a JSCAD solid (Z-up) to a Three.js BufferGeometry (Y-up).
@@ -64,7 +66,7 @@ export function wallRects(cells, walls, params) {
 }
 
 export function buildGeometry(cells, walls, params) {
-  const { cellSize, boxHeight, wallThickness: wt, bottomThickness, outerWallThickness: owt } = params
+  const { cellSize, boxHeight, wallThickness: wt, bottomThickness, outerWallThickness: owt, cornerRadius = 0 } = params
   const rows = cells.length
   const cols = cells[0]?.length ?? 0
   if (rows === 0 || cols === 0) return new THREE.BufferGeometry()
@@ -73,21 +75,49 @@ export function buildGeometry(cells, walls, params) {
   const totalD = rows * cellSize + 2 * owt
   const innerH = Math.max(0, boxHeight - bottomThickness)
 
+  const clampedR = Math.max(0, Math.min(cornerRadius, Math.min(totalW, totalD) / 2 - 0.01))
+
   // Box frame: outer solid minus inner cavity — single subtract gives a
   // continuous solid, so all outer and inner corners are seam-free.
-  const outerBox = cuboid({
-    size: [totalW, totalD, boxHeight],
-    center: [totalW / 2, totalD / 2, boxHeight / 2],
-  })
+  let outerBox
+  if (clampedR > 0) {
+    const outerProfile = roundedRectangle({
+      size: [totalW, totalD],
+      roundRadius: clampedR,
+      segments: 32,
+      center: [totalW / 2, totalD / 2],
+    })
+    outerBox = extrudeLinear({ height: boxHeight }, outerProfile)
+  } else {
+    outerBox = cuboid({
+      size: [totalW, totalD, boxHeight],
+      center: [totalW / 2, totalD / 2, boxHeight / 2],
+    })
+  }
 
   let model
   if (innerH <= 0 || totalW <= 2 * owt || totalD <= 2 * owt) {
     model = outerBox
   } else {
-    model = subtract(outerBox, cuboid({
-      size: [totalW - 2 * owt, totalD - 2 * owt, innerH],
-      center: [totalW / 2, totalD / 2, bottomThickness + innerH / 2],
-    }))
+    const innerW = totalW - 2 * owt
+    const innerD = totalD - 2 * owt
+    const innerR = Math.max(0, Math.min(clampedR - owt, Math.min(innerW, innerD) / 2 - 0.01))
+    let innerCavity
+    if (innerR > 0) {
+      const innerProfile = roundedRectangle({
+        size: [innerW, innerD],
+        roundRadius: innerR,
+        segments: 32,
+        center: [totalW / 2, totalD / 2],
+      })
+      innerCavity = translate([0, 0, bottomThickness], extrudeLinear({ height: innerH }, innerProfile))
+    } else {
+      innerCavity = cuboid({
+        size: [innerW, innerD, innerH],
+        center: [totalW / 2, totalD / 2, bottomThickness + innerH / 2],
+      })
+    }
+    model = subtract(outerBox, innerCavity)
   }
 
   const fills = []

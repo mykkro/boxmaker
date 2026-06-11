@@ -5,7 +5,7 @@
   import { STLExporter } from 'three/examples/jsm/exporters/STLExporter.js'
   import { buildGeometry } from './boxGeometry.js'
 
-  let { cells, walls, cellSize, boxHeight, wallThickness, bottomThickness, outerWallThickness } = $props()
+  let { cells, walls, cellSize, boxHeight, wallThickness, bottomThickness, outerWallThickness, cornerRadius } = $props()
 
   let canvas
   let renderer, scene, camera, controls, mesh, animId
@@ -78,14 +78,14 @@
 
   function rebuildGeometry() {
     if (!mesh) return
-    const params = { cellSize, boxHeight, wallThickness, bottomThickness, outerWallThickness }
+    const params = { cellSize, boxHeight, wallThickness, bottomThickness, outerWallThickness, cornerRadius }
     const geo = buildGeometry(cells, walls, params)
     mesh.geometry.dispose()
     mesh.geometry = geo
   }
 
   $effect(() => {
-    cells; walls; cellSize; boxHeight; wallThickness; bottomThickness; outerWallThickness
+    cells; walls; cellSize; boxHeight; wallThickness; bottomThickness; outerWallThickness; cornerRadius
     rebuildGeometry()
   })
 

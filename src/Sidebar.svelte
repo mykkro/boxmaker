@@ -1,7 +1,7 @@
 <script>
   let {
     cols, rows, mode, canUndo,
-    cellSize, boxHeight, wallThickness, bottomThickness, outerWallThickness,
+    cellSize, boxHeight, wallThickness, bottomThickness, outerWallThickness, cornerRadius,
     onsetsize, onsetmode, onundo, onsetdimensions
   } = $props()
 </script>
@@ -66,6 +66,14 @@
       <div class="input-row">
         <input type="number" min="1" max="20" step="0.5" value={outerWallThickness}
           oninput={e => { const v = Number(e.target.value); if (e.target.value && v >= 1) onsetdimensions({ outerWallThickness: v }) }} />
+        <span class="unit">mm</span>
+      </div>
+    </label>
+    <label>
+      Corner R
+      <div class="input-row">
+        <input type="number" min="0" max="50" step="0.5" value={cornerRadius}
+          oninput={e => { const v = Number(e.target.value); if (e.target.value && v >= 0) onsetdimensions({ cornerRadius: v }) }} />
         <span class="unit">mm</span>
       </div>
     </label>
