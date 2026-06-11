@@ -1,5 +1,9 @@
 <script>
-  let { cols, rows, mode, canUndo, onsetsize, onsetmode, onundo } = $props()
+  let {
+    cols, rows, mode, canUndo,
+    cellSize, boxHeight, wallThickness, bottomThickness, outerWallThickness,
+    onsetsize, onsetmode, onundo, onsetdimensions
+  } = $props()
 </script>
 
 <aside>
@@ -20,6 +24,50 @@
         type="number" min="1" max="20" value={rows}
         oninput={e => { const v = Number(e.target.value); if (e.target.value && v >= 1) onsetsize(cols, Math.min(20, v)) }}
       />
+    </label>
+  </section>
+
+  <section>
+    <span class="label">DIMENSIONS</span>
+    <label>
+      Cell size
+      <div class="input-row">
+        <input type="number" min="5" max="100" step="1" value={cellSize}
+          oninput={e => { const v = Number(e.target.value); if (e.target.value && v >= 5) onsetdimensions({ cellSize: v }) }} />
+        <span class="unit">mm</span>
+      </div>
+    </label>
+    <label>
+      Height
+      <div class="input-row">
+        <input type="number" min="5" max="200" step="1" value={boxHeight}
+          oninput={e => { const v = Number(e.target.value); if (e.target.value && v >= 5) onsetdimensions({ boxHeight: v }) }} />
+        <span class="unit">mm</span>
+      </div>
+    </label>
+    <label>
+      Wall thick
+      <div class="input-row">
+        <input type="number" min="0.5" max="10" step="0.5" value={wallThickness}
+          oninput={e => { const v = Number(e.target.value); if (e.target.value && v >= 0.5) onsetdimensions({ wallThickness: v }) }} />
+        <span class="unit">mm</span>
+      </div>
+    </label>
+    <label>
+      Bottom
+      <div class="input-row">
+        <input type="number" min="0.5" max="20" step="0.5" value={bottomThickness}
+          oninput={e => { const v = Number(e.target.value); if (e.target.value && v >= 0.5) onsetdimensions({ bottomThickness: v }) }} />
+        <span class="unit">mm</span>
+      </div>
+    </label>
+    <label>
+      Outer wall
+      <div class="input-row">
+        <input type="number" min="1" max="20" step="0.5" value={outerWallThickness}
+          oninput={e => { const v = Number(e.target.value); if (e.target.value && v >= 1) onsetdimensions({ outerWallThickness: v }) }} />
+        <span class="unit">mm</span>
+      </div>
     </label>
   </section>
 
@@ -51,6 +99,7 @@
     display: flex;
     flex-direction: column;
     gap: 0;
+    overflow-y: auto;
   }
   h1 {
     font-size: 13px;
@@ -78,6 +127,16 @@
     flex-direction: column;
     gap: 3px;
   }
+  .input-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .unit {
+    font-size: 10px;
+    color: #888;
+    flex-shrink: 0;
+  }
   input[type="number"] {
     background: #333;
     border: 1px solid #555;
@@ -87,6 +146,7 @@
     font-size: 12px;
     width: 100%;
     outline: none;
+    min-width: 0;
   }
   input[type="number"]:focus {
     border-color: #3a7bd5;
