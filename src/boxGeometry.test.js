@@ -21,3 +21,24 @@ describe('buildBoxParts — outer walls', () => {
     expect(parts[4]).toEqual({ center: [9, 16, 10], size: [10, 4,  20] }) // back
   })
 })
+
+describe('buildBoxParts — solid cell blocks', () => {
+  it('generates no extra part for a hollow cell', () => {
+    const parts = buildBoxParts([[false]], new Set(), P)
+    expect(parts).toHaveLength(5) // bottom + 4 outer walls
+  })
+
+  it('generates one solid block for a solid cell in a 1×1 grid', () => {
+    // block z: bottomThickness(3) to boxHeight(20) → height = 17, center z = 3 + 8.5 = 11.5
+    const parts = buildBoxParts([[true]], new Set(), P)
+    expect(parts).toHaveLength(6)
+    expect(parts[5]).toEqual({ center: [9, 9, 11.5], size: [10, 10, 17] })
+  })
+
+  it('only generates a block for the solid cell in a mixed 1×2 grid', () => {
+    // cells[0][0]=true at col 0: center x = owt + 0*cellSize + cellSize/2 = 4+5 = 9
+    const parts = buildBoxParts([[true, false]], new Set(), P)
+    expect(parts).toHaveLength(6) // bottom + 4 outer + 1 solid block
+    expect(parts[5]).toEqual({ center: [9, 9, 11.5], size: [10, 10, 17] })
+  })
+})
