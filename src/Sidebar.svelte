@@ -11,14 +11,14 @@
       Cols
       <input
         type="number" min="1" max="20" value={cols}
-        oninput={e => onsetsize(Math.max(1, Math.min(20, Number(e.target.value))), rows)}
+        oninput={e => { const v = Number(e.target.value); if (e.target.value && v >= 1) onsetsize(Math.min(20, v), rows) }}
       />
     </label>
     <label>
       Rows
       <input
         type="number" min="1" max="20" value={rows}
-        oninput={e => onsetsize(cols, Math.max(1, Math.min(20, Number(e.target.value))))}
+        oninput={e => { const v = Number(e.target.value); if (e.target.value && v >= 1) onsetsize(cols, Math.min(20, v)) }}
       />
     </label>
   </section>
