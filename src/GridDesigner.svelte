@@ -35,26 +35,22 @@
     }
   }
 
-  function handleMousedown(e) {
+  function handlePointerdown(e) {
     if (e.button !== 0) return
+    e.currentTarget.setPointerCapture(e.pointerId)
     const cell = pointerToCell(e)
     dragStart = cell
     dragEnd = cell
   }
 
-  function handleMousemove(e) {
+  function handlePointermove(e) {
     if (!dragStart) return
     dragEnd = pointerToCell(e)
   }
 
-  function handleMouseup(e) {
+  function handlePointerup() {
     if (!dragStart || !selection) return
     oncommit(selection)
-    dragStart = null
-    dragEnd = null
-  }
-
-  function handleMouseleave() {
     dragStart = null
     dragEnd = null
   }
@@ -64,10 +60,9 @@
 <svg
   width={svgWidth}
   height={svgHeight}
-  onmousedown={handleMousedown}
-  onmousemove={handleMousemove}
-  onmouseup={handleMouseup}
-  onmouseleave={handleMouseleave}
+  onpointerdown={handlePointerdown}
+  onpointermove={handlePointermove}
+  onpointerup={handlePointerup}
   style="cursor: crosshair; user-select: none; display: block;"
 >
   <!-- Cell layer -->
