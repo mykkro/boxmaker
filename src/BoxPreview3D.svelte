@@ -103,19 +103,11 @@
   function resetView() {
     positionCamera()
   }
-
-  const modelWidth = $derived(
-    (cells[0]?.length ?? 0) * cellSize + 2 * outerWallThickness
-  )
-  const modelDepth = $derived(
-    cells.length * cellSize + 2 * outerWallThickness
-  )
 </script>
 
 <canvas bind:this={canvas}></canvas>
 <button class="stl-btn" onclick={downloadSTL}>⬇ Download STL</button>
 <button class="reset-btn" onclick={resetView}>⟳ Reset View</button>
-<div class="size-display">{modelWidth} × {modelDepth} × {boxHeight} mm</div>
 
 <style>
   canvas {
@@ -154,19 +146,5 @@
   }
   .reset-btn:hover {
     background: #444;
-  }
-  .size-display {
-    position: absolute;
-    bottom: 8px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.55);
-    color: #ddd;
-    padding: 4px 10px;
-    border-radius: 3px;
-    font-size: 12px;
-    font-family: monospace;
-    pointer-events: none;
-    white-space: nowrap;
   }
 </style>

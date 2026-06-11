@@ -106,6 +106,9 @@
     <div class="grid-pane">
       <GridDesigner {cells} {mode} {walls} oncommit={handleCommit} />
     </div>
+    <div class="preview-header">
+      {cols * cellSize + 2 * outerWallThickness} × {rows * cellSize + 2 * outerWallThickness} × {boxHeight} mm
+    </div>
     <div class="preview-pane">
       <BoxPreview3D
         {cells}
@@ -142,10 +145,20 @@
     padding: 24px;
     min-height: 0;
   }
+  .preview-header {
+    flex-shrink: 0;
+    background: #2a2a2a;
+    color: #aaa;
+    font-size: 12px;
+    font-family: monospace;
+    padding: 4px 12px;
+    border-top: 2px solid #444;
+    text-align: center;
+    letter-spacing: 0.05em;
+  }
   .preview-pane {
     height: 320px;
     flex-shrink: 0;
-    border-top: 2px solid #444;
     background: #1a1a1a;
     position: relative;
   }
