@@ -61,12 +61,16 @@
 
   function handleShare() {
     const url = window.location.href
-    navigator.clipboard.writeText(url).then(() => {
-      shareMsg = 'Copied!'
-      setTimeout(() => { shareMsg = '' }, 2000)
-    }).catch(() => {
-      shareMsg = url   // fallback: show URL so user can manually copy
-    })
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(url).then(() => {
+        shareMsg = 'Copied!'
+        setTimeout(() => { shareMsg = '' }, 2000)
+      }).catch(() => {
+        shareMsg = url
+      })
+    } else {
+      shareMsg = url
+    }
   }
 
   function handleSetSize(newCols, newRows) {
