@@ -62,9 +62,34 @@ npm run build
 
 The output in `dist/` is a single self-contained HTML file (via `vite-plugin-singlefile`) that can be opened directly in any browser without a server.
 
+### Deploying to GitHub Pages
+
+The root `index.html` is a development entry point, not a deployable app: it
+loads source modules that need Vite to compile Svelte and bundle dependencies.
+Publish the built `dist/index.html` instead.
+
+1. In the GitHub repository, open **Settings > Pages** and set **Source** to
+   **GitHub Actions**.
+2. Push these changes to `main`, or run **Deploy to GitHub Pages** manually from
+   the **Actions** tab.
+3. Once the deployment finishes, open
+   [https://mykkro.github.io/boxmaker/](https://mykkro.github.io/boxmaker/).
+
+The [deployment workflow](.github/workflows/deploy-pages.yml) installs dependencies,
+runs tests, builds the app, and publishes `dist/`. The single-file build inlines
+JavaScript and CSS, so it works under the `/boxmaker/` project path without
+separate asset paths or a custom Vite base URL.
+
+For manual static hosting, run `npm run build` and upload the contents of `dist/`,
+not the repository's source files.
+
 ## Tech stack
 
 - [Svelte 5](https://svelte.dev) — reactive UI
 - [Three.js](https://threejs.org) — WebGL 3D preview and STL export
 - [@jscad/modeling](https://openjscad.xyz) — CSG solid modelling for the box geometry
 - [Vite](https://vitejs.dev) + [vite-plugin-singlefile](https://github.com/richardtallent/vite-plugin-singlefile)
+
+## License
+
+[MIT](LICENSE).
