@@ -13,10 +13,12 @@
   }
   const _init = readUrlState()
 
-  let cols = $state(_init?.c ?? 5)
-  let rows = $state(_init?.r ?? 3)
+  const initCols = _init?.c ?? 5
+  const initRows = _init?.r ?? 3
+  let cols = $state(initCols)
+  let rows = $state(initRows)
   let cells = $state(
-    _init?.g ? _init.g.map(row => row.map(v => v === 1)) : makeCells(rows, cols)
+    _init?.g ? _init.g.map(row => row.map(v => v === 1)) : makeCells(initRows, initCols)
   )
   let walls = $state(new Set(_init?.w ?? []))
   let mode = $state('hollow')
@@ -166,6 +168,8 @@
     </div>
     <div
       class="divider"
+      role="separator"
+      aria-orientation="horizontal"
       onpointerdown={onDividerPointerdown}
       onpointermove={onDividerPointermove}
     ></div>
