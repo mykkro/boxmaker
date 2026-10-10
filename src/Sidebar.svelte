@@ -102,7 +102,7 @@
 
 <style>
   aside {
-    width: 130px;
+    width: 200px;
     flex-shrink: 0;
     background: #2a2a2a;
     color: white;

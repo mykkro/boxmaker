@@ -35,7 +35,7 @@
   function onDividerPointermove(e) {
     if (!e.buttons) return
     const rect = workspaceEl.getBoundingClientRect()
-    split = Math.max(0.1, Math.min(0.9, (e.clientY - rect.top) / rect.height))
+    split = Math.max(0.1, Math.min(0.9, (e.clientX - rect.left) / rect.width))
   }
 
   let cellSize = $state(_init?.cs ?? 20)
@@ -169,33 +169,35 @@
     <div
       class="divider"
       role="separator"
-      aria-orientation="horizontal"
+      aria-orientation="vertical"
       onpointerdown={onDividerPointerdown}
       onpointermove={onDividerPointermove}
     ></div>
-    <div class="preview-header">
-      <span class="size-label">
-        {cols * cellSize + 2 * outerWallThickness} × {rows * cellSize + 2 * outerWallThickness} × {boxHeight} mm
-      </span>
-      {#if shareMsg.startsWith('http')}
-        <input class="share-url" value={shareMsg} readonly onclick={e => e.target.select()} />
-      {:else}
-        <button class="share-btn" onclick={handleShare}>
-          {shareMsg || '⎘ Share'}
-        </button>
-      {/if}
-    </div>
-    <div class="preview-pane" style="flex: {1 - split}">
-      <BoxPreview3D
-        {cells}
-        {walls}
-        {cellSize}
-        {boxHeight}
-        {wallThickness}
-        {bottomThickness}
-        {outerWallThickness}
-        {cornerRadius}
-      />
+    <div class="preview-column" style="flex: {1 - split}">
+      <div class="preview-header">
+        <span class="size-label">
+          {cols * cellSize + 2 * outerWallThickness} × {rows * cellSize + 2 * outerWallThickness} × {boxHeight} mm
+        </span>
+        {#if shareMsg.startsWith('http')}
+          <input class="share-url" value={shareMsg} readonly onclick={e => e.target.select()} />
+        {:else}
+          <button class="share-btn" onclick={handleShare}>
+            {shareMsg || '⎘ Share'}
+          </button>
+        {/if}
+      </div>
+      <div class="preview-pane">
+        <BoxPreview3D
+          {cells}
+          {walls}
+          {cellSize}
+          {boxHeight}
+          {wallThickness}
+          {bottomThickness}
+          {outerWallThickness}
+          {cornerRadius}
+        />
+      </div>
     </div>
   </div>
 </div>
@@ -209,7 +211,7 @@
   .workspace {
     flex: 1;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     min-width: 0;
     overflow: hidden;
   }
@@ -219,13 +221,13 @@
     justify-content: center;
     overflow: auto;
     padding: 24px;
-    min-height: 0;
+    min-width: 0;
   }
   .divider {
     flex-shrink: 0;
-    height: 5px;
+    width: 5px;
     background: #3a3a3a;
-    cursor: row-resize;
+    cursor: col-resize;
     touch-action: none;
     transition: background 0.15s;
   }
@@ -239,7 +241,7 @@
     font-size: 12px;
     font-family: monospace;
     padding: 4px 12px;
-    border-top: 2px solid #444;
+    border-bottom: 2px solid #444;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -279,8 +281,15 @@
     font-family: monospace;
     outline: none;
   }
+  .preview-column {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
   .preview-pane {
+    flex: 1;
     min-height: 0;
+    overflow: hidden;
     background: #1a1a1a;
     position: relative;
   }
