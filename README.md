@@ -80,6 +80,12 @@ runs tests, builds the app, and publishes `dist/`. The single-file build inlines
 JavaScript and CSS, so it works under the `/boxmaker/` project path without
 separate asset paths or a custom Vite base URL.
 
+If the page is blank and the browser reports a 404 for `/src/main.js`, Pages is
+still serving the development entry point. Ensure **Settings > Pages > Source**
+is **GitHub Actions**, not **Deploy from a branch**, then re-run **Deploy to
+GitHub Pages**. Branch-based publishing runs a separate **pages build and
+deployment** workflow that can overwrite the built app with the source HTML.
+
 For manual static hosting, run `npm run build` and upload the contents of `dist/`,
 not the repository's source files.
 
